@@ -1,0 +1,121 @@
+CREATE DATABASE IF NOT EXISTS consultorio_medico
+ WITH
+    OWNER = postgres
+    ENCODING = 'UTF8'
+    LOCALE_PROVIDER = 'libc'
+    CONNECTION LIMIT = -1
+    IS_TEMPLATE = False;
+
+CREATE TABLE IF NOT EXISTS public.consulta
+
+(
+	"id" INTEGER NOT NULL,
+	"idMedico" INTEGER NOT NULL,
+	"idPaciente" INTEGER NOT NULL,
+	fecha DATE NOT NULL,
+	hora TIME NOT NULL,
+	consultorio VARCHAR(15) NOT NULL
+);
+
+ALTER TABLE public.consulta ADD CONSTRAINT pkconsulta
+	PRIMARY KEY ("id");
+
+CREATE TABLE IF NOT EXISTS public.especialidad
+(
+	codigo INTEGER NOT NULL,
+	descripcion VARCHAR(50) NOT NULL
+);
+
+ALTER TABLE public.especialidad ADD CONSTRAINT pkespecialidad
+	PRIMARY KEY (codigo);
+
+CREATE TABLE IF NOT EXISTS public.licencia
+(
+	codigo INTEGER NOT NULL,
+	"idConsulta" INTEGER NOT NULL,
+	diagnostico VARCHAR NOT NULL,
+	fecha_ini DATE NOT NULL,
+	fecha_fin DATE NOT NULL
+);
+
+ALTER TABLE public.licencia ADD CONSTRAINT pklicencia
+	PRIMARY KEY (codigo);
+
+
+CREATE TABLE IF NOT EXISTS public.medico
+(
+	"id" INTEGER NOT NULL,
+	"idEspecialidad" INTEGER NOT NULL,
+	rut VARCHAR(12) UNIQUE NOT NULL,
+	nombre VARCHAR(25) NOT NULL,
+	direccion VARCHAR(50) NOT NULL
+);
+
+ALTER TABLE public.medico ADD CONSTRAINT pkmedico
+	PRIMARY KEY ("id");
+
+CREATE TABLE IF NOT EXISTS public.paciente
+(
+	"id" INTEGER NOT NULL,
+	rut VARCHAR(12) UNIQUE NOT NULL,
+	nombre VARCHAR(25) NOT NULL,
+	direccion VARCHAR(50) NOT NULL
+);
+
+ALTER TABLE public.paciente ADD CONSTRAINT pkpaciente
+	PRIMARY KEY ("id");
+
+DROP SCHEMA public CASCADE;
+
+/* Add Foreign Key: fk_consulta_licencia */
+ALTER TABLE public.consulta ADD CONSTRAINT fk_consulta_licencia
+	FOREIGN KEY ("id") REFERENCES public.licencia ("idConsulta")
+	ON UPDATE NO ACTION ON DELETE NO ACTION;
+
+/* Add Foreign Key: fk_consulta_medico */
+ALTER TABLE public.consulta ADD CONSTRAINT fk_consulta_medico
+	FOREIGN KEY ("idMedico") REFERENCES public.medico ("id")
+	ON UPDATE NO ACTION ON DELETE NO ACTION;
+
+/* Add Foreign Key: fk_consulta_paciente */
+ALTER TABLE public.consulta ADD CONSTRAINT fk_consulta_paciente
+	FOREIGN KEY ("idPaciente") REFERENCES public.paciente ("id")
+	ON UPDATE NO ACTION ON DELETE NO ACTION;
+
+/* Add Foreign Key: fk_medico_especialidad */
+ALTER TABLE public.medico ADD CONSTRAINT fk_medico_especialidad
+	FOREIGN KEY ("idEspecialidad") REFERENCES public.especialidad (codigo)
+	ON UPDATE NO ACTION ON DELETE NO ACTION;
+
+SET DATESTYLE TO 'European';
+
+BEGIN;
+INSERT INTO especialidad VALUES (1, 'Pediatra'), (2, 'Odontólogo'),(3, 'Matrona');
+
+INSERT INTO medico VALUES (1, 1, '9999999-9','Juan Vera', 'Calle Domingo 857, casa 45, comuna La Florida'),(2, 2, '11111111-1','Pedro Navajas', 'Calle Santa Rosa 7455, Dpto 255, comuna Independencia');
+
+INSERT INTO paciente VALUES (1, '22222222-2','Margarita López', 'Calle Laguna Azul 2452, casa 545, comuna Los Vilos'),(2, '3333333-3','Jhon Frank', 'Santa Ana 5454, Dpto 4454, comuna La Granja');
+
+INSERT INTO consulta VALUES (1, 1, 1, '20/04/2024','10:20:00'),(2, 2, 2, '24/04/2024','13:30:00');
+
+INSERT INTO licencia VALUES (1, 1, 'Deficiencia Vitaminas', '20/04/2024','20/04/2024'),(2, 2, 'Limpieza Dental', '24/04/2024','24/04/2024');
+END;
+
+select * from especialidad;
+
+select * from medico;
+
+select * from paciente;
+
+select * from consulta;
+
+select * from licencia;
+
+select p.nombre as nombre paciente, l.fecha_ini as inicio licencia,  l.fecha_fin as fin licencia,   m.nombre as medico tratante 
+from paciente p 
+join consulta c 
+on (p.id = c.idPaciente) 
+join medico m
+on (c.idMedico = m.id)
+join licencia l 
+on (c.id = l.idConsulta) order by p.nombre;
